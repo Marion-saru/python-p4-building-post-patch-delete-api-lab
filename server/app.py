@@ -45,5 +45,54 @@ def most_expensive_baked_good():
     most_expensive_serialized = most_expensive.to_dict()
     return make_response( most_expensive_serialized,   200  )
 
+@app.route('/baked_goods', methods=['POST'])
+def create_baked_good():
+    data = request.form
+    
+    required_fields = ['name', 'price', 'bakery_id']
+    missing_fields = [field for field in required_fields if field not in data]
+    
+    if missing_fields:
+        return jsonify({"errors": [f"Missing required fields: {', '.join(missing_fields)}"]}), 400
+    
+    baked_good = BakedGood(
+        name=data['name'],
+        price=float(data['price']),
+        bakery_id=int(data['bakery_id'])
+    )
+    
+    db.session.add(baked_good)
+    db.session.commit()
+    
+    return jsonify(baked_good.to_dict()), 201
+
+
+@app.route('/bakeries/<int:id>', methods=['PATCH'])
+def update_bakery(id):
+    bakery = db.session.get(Bakery, id)
+    if not bakery:
+        return jsonify({"error": "Bakery not found"}), 404
+    
+    data = request.form
+    
+    if 'name' in data:
+        bakery.name = data['name']
+    
+    db.session.commit()
+    
+    return jsonify(bakery.to_dict()), 200
+
+
+@app.route('/baked_goods/<int:id>', methods=['DELETE'])
+def delete_baked_good(id):
+    baked_good = db.session.get(BakedGood, id)
+    if not baked_good:
+        return jsonify({"error": "Baked good not found"}), 404
+    
+    db.session.delete(baked_good)
+    db.session.commit()
+    
+    return jsonify({"message": "Baked good successfully deleted"}), 200    
+
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
